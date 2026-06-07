@@ -1,0 +1,344 @@
+from mcp.server.fastmcp import FastMCP
+from pathlib import Path
+import shutil
+import os
+
+# =====================================================
+# MCP SERVER
+# =====================================================
+
+mcp = FastMCP("MyTools")
+
+# =====================================================
+# WORKSPACE
+# ALL WRITE OPERATIONS ARE RESTRICTED HERE
+# =====================================================
+
+WORKSPACE = Path(
+    r"C:\Users\vinaykumar.chaubey\my_agentwork"
+)
+
+WORKSPACE.mkdir(exist_ok=True)
+
+# =====================================================
+# READ FILE
+# ANYWHERE ON COMPUTER
+# =====================================================
+
+@mcp.tool()
+def read_file(filepath: str) -> str:
+
+    path = Path(filepath)
+
+    if not path.exists():
+        return f"File not found: {filepath}"
+
+    if not path.is_file():
+        return f"Not a file: {filepath}"
+
+    try:
+        return path.read_text(
+            encoding="utf-8",
+            errors="ignore"
+        )
+
+    except Exception as e:
+        return f"Error reading file: {e}"
+
+
+# =====================================================
+# LIST DIRECTORY
+# ANYWHERE ON COMPUTER
+# =====================================================
+
+@mcp.tool()
+def list_directory(folder: str) -> list:
+
+    try:
+        return os.listdir(folder)
+
+    except Exception as e:
+        return [f"Error: {e}"]
+
+
+# =====================================================
+# SEARCH FILES
+# ANYWHERE ON COMPUTER
+# =====================================================
+
+@mcp.tool()
+def search_files(
+    keyword: str,
+    root_folder: str = r"C:\Users\vinaykumar.chaubey"
+) -> list:
+
+    matches = []
+
+    try:
+
+        for root, dirs, files in os.walk(root_folder):
+
+            for file in files:
+
+                if keyword.lower() in file.lower():
+
+                    matches.append(
+                        str(Path(root) / file)
+                    )
+
+                    if len(matches) >= 100:
+                        return matches
+
+        return matches
+
+    except Exception as e:
+        return [f"Error: {e}"]
+
+
+# =====================================================
+# FIND RECENT FILES
+# ANYWHERE ON COMPUTER
+# =====================================================
+
+@mcp.tool()
+def find_recent_files(
+    root_folder: str = r"C:\Users\vinaykumar.chaubey",
+    limit: int = 20
+) -> list:
+
+    all_files = []
+
+    try:
+
+        for root, dirs, files in os.walk(root_folder):
+
+            for file in files:
+
+                full_path = Path(root) / file
+
+                try:
+
+                    modified_time = os.path.getmtime(
+                        full_path
+                    )
+
+                    all_files.append(
+                        (
+                            modified_time,
+                            str(full_path)
+                        )
+                    )
+
+                except:
+                    pass
+
+        all_files.sort(reverse=True)
+
+        return [
+            path
+            for _, path in all_files[:limit]
+        ]
+
+    except Exception as e:
+        return [f"Error: {e}"]
+
+
+# =====================================================
+# LIST WORKSPACE PROJECTS
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def list_workspace() -> list:
+
+    try:
+
+        return [
+            item.name
+            for item in WORKSPACE.iterdir()
+        ]
+
+    except Exception as e:
+        return [f"Error: {e}"]
+
+
+# =====================================================
+# CREATE FOLDER
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def create_folder(folder_name: str) -> str:
+
+    folder = WORKSPACE / folder_name
+
+    folder.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    return f"Created folder: {folder}"
+
+
+# =====================================================
+# RENAME FOLDER
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def rename_folder(
+    old_name: str,
+    new_name: str
+) -> str:
+
+    old_path = WORKSPACE / old_name
+    new_path = WORKSPACE / new_name
+
+    if not old_path.exists():
+        return f"Folder not found: {old_name}"
+
+    old_path.rename(new_path)
+
+    return f"Renamed {old_name} -> {new_name}"
+
+
+# =====================================================
+# DELETE FOLDER
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def delete_folder(folder_name: str) -> str:
+
+    folder = WORKSPACE / folder_name
+
+    if not folder.exists():
+        return f"Folder not found: {folder_name}"
+
+    shutil.rmtree(folder)
+
+    return f"Deleted folder: {folder_name}"
+
+
+# =====================================================
+# CREATE FILE
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def create_file(
+    folder: str,
+    filename: str,
+    content: str
+) -> str:
+
+    target_folder = WORKSPACE / folder
+
+    target_folder.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    filepath = target_folder / filename
+
+    filepath.write_text(
+        content,
+        encoding="utf-8"
+    )
+
+    return f"Created {filepath}"
+
+
+# =====================================================
+# EDIT FILE
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def edit_file(
+    folder: str,
+    filename: str,
+    content: str
+) -> str:
+
+    filepath = (
+        WORKSPACE /
+        folder /
+        filename
+    )
+
+    if not filepath.exists():
+        return f"File not found: {filepath}"
+
+    filepath.write_text(
+        content,
+        encoding="utf-8"
+    )
+
+    return f"Updated {filepath}"
+
+
+# =====================================================
+# APPEND FILE
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def append_file(
+    folder: str,
+    filename: str,
+    content: str
+) -> str:
+
+    filepath = (
+        WORKSPACE /
+        folder /
+        filename
+    )
+
+    with open(
+        filepath,
+        "a",
+        encoding="utf-8"
+    ) as f:
+
+        f.write(content)
+
+    return f"Appended to {filepath}"
+
+
+# =====================================================
+# DELETE FILE
+# ONLY WORKSPACE
+# =====================================================
+
+@mcp.tool()
+def delete_file(
+    folder: str,
+    filename: str
+) -> str:
+
+    filepath = (
+        WORKSPACE /
+        folder /
+        filename
+    )
+
+    if not filepath.exists():
+        return f"File not found: {filepath}"
+
+    filepath.unlink()
+
+    return f"Deleted {filepath}"
+
+
+# =====================================================
+# SERVER START
+# =====================================================
+
+if __name__ == "__main__":
+
+    print("Starting MCP server...")
+    print(f"Workspace: {WORKSPACE}")
+
+    mcp.run()
